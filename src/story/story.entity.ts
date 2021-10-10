@@ -1,4 +1,3 @@
-import { use } from 'passport';
 import {
   Entity,
   Column,
@@ -14,6 +13,7 @@ import {
 
 import { Category } from '../category/category.entity';
 import { User } from '../user/user.entity';
+import { Workspace } from '../workspace/workspace.entity';
 
 type PostContentBlockData<T extends object = any> = T;
 
@@ -22,39 +22,56 @@ interface PostContentBlock {
   data: PostContentBlockData;
 }
 
+interface ExtraInfo {
+  [label: string]: any
+}
+
 @Entity()
 export class Story {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({
+    nullable: true
+  })
   banner: string;
 
-  @Column()
+  @Column({
+    nullable: true
+  })
   title: string;
 
-  @Unique(['slug'])
-  @Column()
-  slug: string;
-
-  @Column()
+  @Column({
+    nullable: true
+  })
   description: string;
 
   @Column({
     type: "json",
+    nullable: true
   })
   content: any;
 
   @Column({
-    type: 'json'
+    type: 'json',
+    nullable: true
   })
   tags: string[];
+
+  @Column({
+    type: 'json',
+    nullable: true
+  })
+  extra: ExtraInfo
 
   @ManyToOne(() => Category, (category: Category) => category.id)
   category: Category;
 
   @ManyToOne(() => User, (user: User) => user.id)
   author: User;
+
+  @ManyToOne(() => Workspace, (workspace: Workspace) => workspace.id)
+  workspace: Workspace;
 
   @Column({
     type: Boolean,

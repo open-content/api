@@ -7,9 +7,6 @@ import { Paginated } from '../types';
 
 @Injectable()
 export class StoryService {
-  private _userFields: Array<string> = ['firstName', 'lastName', 'avatar'];
-  private _categoryFields: Array<string> = ['name', 'slug'];
-
   constructor(@InjectRepository(Story) private story: Repository<Story>) {}
 
   async create(story: any): Promise<any> {
@@ -28,7 +25,7 @@ export class StoryService {
       where: filter,
       take: 10,
       order: { createdAt: 'DESC' },
-      relations: ['category', 'author']
+      relations: ['category', 'author', 'workspace'],
     });
 
     return {
@@ -39,15 +36,18 @@ export class StoryService {
     };
   }
 
-  async findOne(filter: any): Promise<Story> {
+  async findOne(filter: any, workspaceId: string): Promise<Story> {
     return this.story.findOne(filter);
   }
 
   async findById(id: string): Promise<Story> {
-    return this.story.findOne({ id });
+    return this.story.findOne({
+      where: {   id   },
+      relations: ['category', 'author']
+    });
   }
 
   async delete(id: string): Promise<any> {
-    return this.story.delete({ id });
+    return this.story.delete(id);
   }
 }

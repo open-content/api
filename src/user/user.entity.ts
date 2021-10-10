@@ -30,6 +30,11 @@ export class User {
   @Column()
   lastName: string;
 
+  @Column({
+    nullable: true,
+  })
+  alias: string;
+
   @Unique(['email', 'workspaceId'])
   @Column()
   email: string;
@@ -49,6 +54,11 @@ export class User {
   })
   location: string;
 
+  @Column({
+    nullable: true,
+  })
+  mobile: string;
+
   @Column({ select: false })
   password: string;
 
@@ -66,7 +76,7 @@ export class User {
   role: Role;
 
   @ManyToOne(() => Workspace, (workspace: Workspace) => workspace.id)
-  workspace: Workspace
+  workspace: Workspace;
 
   @CreateDateColumn()
   createdAt: string;

@@ -45,31 +45,38 @@ export class ExceptionFilter extends BaseExceptionFilter {
     const res: Response = ctx.getResponse<Response>(),
       req: Request = ctx.getRequest<Request>();
 
-
     console.log(exception);
-
 
     this.logger.error(exception as string);
 
-    switch(exception.constructor.name) {
+    if  (!exception) {
+      return;
+    }
+
+    switch (exception.constructor.name) {
       case 'ValidationError':
-        const { status, errors}: any = this.validationError(exception['errors']);
-      
+        const { status, errors }: any = this.validationError(
+          exception['errors'],
+        );
+
         return res.status(status).json({
           statusCode: status,
           timestamp: new Date().toISOString(),
           path: req.url,
-          errors
+          errors,
         });
 
       case 'MongoError':
-        const dup: boolean = exception['message'].indexOf('dup key') !== -1 ? true : false;
-      
+        const dup: boolean =
+          exception['message'].indexOf('dup key') !== -1 ? true : false;
+
         return res.status(HttpStatus.BAD_REQUEST).json({
           statusCode: HttpStatus.BAD_REQUEST,
           timestamp: new Date().toISOString(),
           path: req.url,
-          errors: dup ? this.dupKey(exception['keyValue']) : [{message: 'Something went wrong.'}]
+          errors: dup
+            ? this.dupKey(exception['keyValue'])
+            : [{ message: 'Something went wrong.' }],
         });
 
       case 'TokenExpiredError':
@@ -77,18 +84,18 @@ export class ExceptionFilter extends BaseExceptionFilter {
           statusCode: HttpStatus.UNAUTHORIZED,
           timestamp: new Date().toISOString(),
           path: req.url,
-          errors: [{message: "Unauthorized."}]
+          errors: [{ message: 'Unauthorized.' }],
         });
 
       case 'HttpException':
         const statusCode: number = (exception as HttpException).getStatus(),
           message: string = (exception as HttpException).message;
-      
+
         return res.status(statusCode).json({
           statusCode,
           timestamp: new Date().toISOString(),
           path: req.url,
-          errors: [{message}]
+          errors: [{ message }],
         });
 
       default:
@@ -96,9 +103,8 @@ export class ExceptionFilter extends BaseExceptionFilter {
           statusCode: 500,
           timestamp: new Date().toISOString(),
           path: req.url,
-          errors: [{message: "Something went wrong."}]
+          errors: [{ message: 'Something went wrong.' }],
         });
-
     }
   }
 }

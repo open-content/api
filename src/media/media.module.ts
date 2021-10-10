@@ -29,7 +29,9 @@ import { PexelsService } from './pexels.service';
           },
         }
 
-        const type: string = config.get('STORAGE_TYPE') || 'disk';
+        const type: string = config.get('STORAGE_TYPE') || 'DISC';
+
+        console.log(type);
 
         if(type.toLowerCase() === 'google') {
 

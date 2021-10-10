@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ServeStaticModule } from '@nestjs/serve-static';
 
 import { GlobalModule } from './global.module';
 import { ExceptionFilter } from './exception.filter';
@@ -18,12 +19,17 @@ import { MediaModule } from './media/media.module';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { resolve } from 'path';
+import { SettingModule } from './setting/setting.module';
+import { Setting } from './setting/setting.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: process.env.NODE_ENV !== 'production' ? resolve(__dirname, '../.env') : resolve(__dirname, '../prod.env')
+      envFilePath:
+        process.env.NODE_ENV !== 'production'
+          ? resolve(__dirname, '../.env')
+          : resolve(__dirname, '../prod.env'),
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -37,10 +43,13 @@ import { resolve } from 'path';
           database: config.get('DB_NAME') || 'ocms',
           synchronize: true,
           logging: true,
-          entities: [Media, User, Category, Story, Workspace]
+          entities: [Media, User, Category, Story, Workspace, Setting],
         };
       },
       inject: [ConfigService],
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: resolve(__dirname, '../uploads'),
     }),
     GlobalModule,
     UserModule,
@@ -48,6 +57,7 @@ import { resolve } from 'path';
     CategoryModule,
     StoryModule,
     MediaModule,
+    SettingModule,
   ],
   providers: [
     ConfigService,

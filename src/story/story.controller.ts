@@ -21,7 +21,9 @@ export class StoryController {
   @UseGuards(JwtGuard)
   @Get()
   async all(@Req() req: Request) {
-    const filter: any = {};
+    const filter: any = {
+      workspace: req.user['workspace']['id'],
+    };
 
     if (req.query.q) {
       filter.title = Like(`%${req.query.q}%`);
@@ -47,7 +49,11 @@ export class StoryController {
   @UseGuards(JwtGuard)
   @Post()
   async create(@Req() req: Request) {
-    return this.story.create({ ...req.body, author: req.user['id'] });
+    return this.story.create({
+      ...req.body,
+      author: req.user['id'],
+      workspace: req.user['workspace']['id'],
+    });
   }
 
   @UseGuards(JwtGuard)
@@ -59,17 +65,11 @@ export class StoryController {
   @UseGuards(JwtGuard)
   @Delete(':id')
   async delete(@Req() req: Request, @Res() res: Response) {
-    const deleted: any = await this.story.delete(req.params.id);
+    await this.story.delete(req.params.id);
 
-    // if(deleted.n > 0 && deleted.ok === 1) {
-    //   return res.status(200).json({
-    //     status: 'success',
-    //     message: 'Post deleted successfully.'
-    //   });
-    // } else if(deleted.n === 0) {
-    //   return res.status(404).send();
-    // }
-
-    return true;
+    return res.status(200).json({
+      status: 'success',
+      message: 'Post deleted successfully.',
+    });
   }
 }

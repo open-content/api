@@ -1,12 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  createReadStream,
-  createWriteStream,
-  readFileSync,
-  writeFileSync,
-} from 'fs';
+import { createReadStream, createWriteStream } from 'fs';
 import { join } from 'path';
 import { unlink } from 'fs';
 import { In, Repository } from 'typeorm';
@@ -22,11 +17,7 @@ import { UnsplashService } from './unsplash.service';
 import { PexelsService } from './pexels.service';
 import { PixabayService } from './pixabay.service';
 import { uuid } from '../utils/helpers';
-
 import request from '../utils/request';
-
-const PREDICT_URL =
-  'http://max-image-caption-generator.codait-prod-41208c73af8fca213512856c7a09db52-0000.us-east.containers.appdomain.cloud/model/predict';
 
 @Injectable()
 export class MediaService {
@@ -43,37 +34,43 @@ export class MediaService {
     private pixabay: PixabayService,
   ) {}
 
+  async tags(url: string) {
+    return [];
+    
+    const { result = {} }: any = await request(
+      `https://api.imagga.com/v2/tags?image_url=${encodeURIComponent(url)}`,
+      'GET',
+      {
+        headers: {
+          Authorization:
+            'Basic YWNjXzYzMTE1ZDUxOWMxODMxMzo2YjFkZjgyZDI2ODFjNzhmZjJkNmVhZjA5OTI0ZGE1Zg==',
+        },
+      },
+    );
+
+    return (result.tags || [])
+      .filter((t: any) => t.confidence > 20)
+      .map((t: any) => {
+        return t.tag.en;
+      });
+  }
+
   async create(files: any, user: any) {
     const media: any = [];
     const type: string =
       this.config.get('STORAGE_TYPE').toLowerCase() || 'disc';
-    const fileUrl: string =
-      this.config.get('URL') || 'http://localhost:4000/media/file';
-
-    console.log(files);
+    const fileUrl: string = this.config.get('URL') || 'http://localhost:4000/';
 
     for (let i = 0; i < files.length; i++) {
       const file: any = files[i],
         info: any =
           type === 'disc'
             ? await probe(createReadStream(file.path))
-            : await probe(`${this.config.get('GOOGLE_URL')}/${file.filename}`),
-        url = `https://api.imagga.com/v2/tags?image_url=${encodeURIComponent(
-          `${fileUrl}/${file.filename}`,
-        )}`;
+            : await probe(`${this.config.get('GOOGLE_URL')}/${file.filename}`);
 
-      // const { result }: any = await request(url, 'GET', {
-      //   headers: {
-      //     Authorization:
-      //       'Basic YWNjXzYzMTE1ZDUxOWMxODMxMzo2YjFkZjgyZDI2ODFjNzhmZjJkNmVhZjA5OTI0ZGE1Zg==',
-      //   },
-      // });
-
-      // const tags: Array<string> = result.tags
-      //   .filter((t: any) => t.confidence > 20)
-      //   .map((t: any) => {
-      //     return t.tag.en;
-      //   });
+      const tags: Array<string> = await this.tags(
+        `${fileUrl}/${file.filename}`,
+      );
 
       media.push({
         name: file.filename.split('/')[1],
@@ -82,7 +79,7 @@ export class MediaService {
         width: info.width,
         height: info.height,
         uploadedBy: user.id,
-        tags: [],
+        tags,
         workspace: user.workspace.id,
       });
     }
@@ -98,7 +95,6 @@ export class MediaService {
   }
 
   async copy(files: Array<any>, user: any) {
-    console.log('files', files, this.config.get('STORAGE_TYPE'));
     const tostorage: Array<Promise<any>> = [],
       type: string = this.config.get('STORAGE_TYPE').toLowerCase() || 'disc',
       uploadPath: string = this.config.get('UPLOADS_PATH'),
@@ -227,13 +223,17 @@ export class MediaService {
   }
 
   async delete(id: string, user: any): Promise<any> {
-    const media: any = await this.media.findOne({ id });
+    const media: any = await this.media.findOne({ id }),
+      type: string = this.config.get('STORAGE_TYPE').toLowerCase() || 'disc';
 
-    if (this.config.get('STORAGE_TYPE').toLowerCase() === 'google') {
+    if (type === 'google') {
       const bucket = this.storage.bucket(this.config.get('GOOGLE_BUCKET'));
       await bucket.file(`${user.workspace.id}/${media.name}`).delete();
     } else {
-      unlink(join(this.config.get('UPLOADS_PATH'), media.name), () => null);
+      unlink(
+        join(this.config.get('UPLOADS_PATH'), user.workspace.id, media.name),
+        () => null,
+      );
     }
 
     await this.media.delete({ id });
@@ -245,22 +245,4 @@ export class MediaService {
       message: 'Media deleted successfully.',
     };
   }
-
-  // async file(name: string, res: Response) {
-  //   const media: Media = await this.media.findOne({
-  //     where: {
-  //       name
-  //     },
-  //     relations: ['workspace']
-  //   });
-
-  //   if(this.config.get('STORAGE_TYPE').toLowerCase() === 'DISC') {
-  //     res.set({
-  //       'content-type': 'image/*',
-  //     });
-  //     return createReadStream(join(this.config.get('UPLOADS_PATH'), media.workspace.id, name)).pipe(res);
-  //   }
-
-  //   return res.redirect(`${this.config.get('GOOGLE_URL')}/${media.workspace.id}/${name}`);
-  // }
 }
